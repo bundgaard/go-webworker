@@ -11,22 +11,75 @@
     <h1>
         Web worker example
     </h1>
+
+    <div id="left" style="width: 50%; float: left;">
+        <canvas id="myCanvas" width="640" height="480">
+            <!-- You need a newer browser //-->
+        </canvas>
+
+    </div>
+    <div id="right" style="display: inline-block; width: 50%">
+        <div class="tools" style="display: flex; flex-direction: column;">
+            <label class="labeL">Iterations: <span>0</span> <input type="range" min="0" max="10000">
+                <span>1000</span></label>
+
+            <label>Xmin: <input type="range" min="-2.5" max="2.5" step="0.1"></label>
+            <label>Xmax: <input type="range" min="-2.5" max="2.5" step="0.1"> </label>
+
+            <label>Ymin: <input type="range" min="-2.5" max="2.5" step="0.1"></label>
+            <label>Ymax: <input type="range" min="-2.5" max="2.5" step="0.1"> </label>
+
+
+            <label>Red: <input type="range" min="0" max="255"></label>
+            <label>Green: <input type="range" min="0" max="255"></label>
+            <label>Blue: <input type="range" min="0" max="255"></label>
+
+        </div>
+
+    </div>
+    <script src="/static/mandelbrot.js"></script>
     <script>
-        let workerFibonacci = new Worker("/static/fibonacci.js");
+        let canvas = document.getElementById("myCanvas")
+        let workerFibonacci;
+        if (canvas !== null) {
+            let ctx = canvas.getContext("2d");
 
+            /* DEFAULT VALUES
+            let xmin = -2.1;
+            let xmax = 1;
+            let ymin = -1.35;
+            let ymax = 1.35;
+            */
 
-        workerFibonacci.onmessage = (evt) => {
-            console.log("received message from fibonacci");
-            console.log(evt);
-            let elm = document.createElement("div");
-            elm.textContent = evt.data;
-            document.body.appendChild(elm);
-        };
+            // -0.7746806106269039 -0.1374168856037867
+            let xmin = -2.1;
+            let xmax = 1;
+            let ymin = -1.35;
+            let ymax = 1.35;
+            let iterations = 8192;
+            let canvasData = ctx.getImageData(0, 0, 640, 480);
+            let file32mb = new Uint8ClampedArray(640 * 480 * 4);
 
-        // workerFibonacci.postMessage("first message");
+            workerMandelbrot = new Worker("/static/mandelbrot.js");
+            workerMandelbrot.postMessage({ type: "mandelbrot", xmin: xmin, xmax: xmax, ymin: ymin, ymax: ymax, width: 640, height: 480, iterations: iterations, buffer: file32mb.buffer }, [file32mb.buffer]);
+            workerMandelbrot.onmessage = (evt) => {
+                let downloadAnchor = document.getElementById("downloadMandelbrot")
+                if (downloadAnchor !== null) {
+                    document.body.removeChild(downloadAnchor);
+                }
+                let data = evt.data;
+                let imageData = ctx.createImageData(640, 480);
+                imageData.data.set(new Uint8ClampedArray(data.buffer));
+                ctx.putImageData(imageData, 0, 0);
+                let elm = document.createElement("a");
+                elm.id = "downloadMandelbrot";
+                elm.textContent = "Download";
+                elm.download = "mandelbrot.png";
+                elm.href = canvas.toDataURL("image/png", 90);
+                document.body.appendChild(elm);
+            };
+        }
     </script>
-
-
 </body>
 
 </html>
