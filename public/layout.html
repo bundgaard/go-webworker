@@ -57,18 +57,24 @@
             let ymin = -1.35;
             let ymax = 1.35;
             let iterations = 8192;
-            let canvasData = ctx.getImageData(0, 0, 640, 480);
-            let file32mb = new Uint8ClampedArray(640 * 480 * 4);
+            let width = 1280;
+            let height = 1024;
+            let total = width * height * 4; // 4 is the pixel width in imagedata.
 
-            workerMandelbrot = new Worker("/static/mandelbrot.js");
-            workerMandelbrot.postMessage({ type: "mandelbrot", xmin: xmin, xmax: xmax, ymin: ymin, ymax: ymax, width: 640, height: 480, iterations: iterations, buffer: file32mb.buffer }, [file32mb.buffer]);
+
+
+            for (let i = 0; i < 4; i++) {
+                workerMandelbrot = new Worker("/static/mandelbrot.js");
+                workerMandelbrot.postMessage({ type: "mandelbrot", xmin: xmin, xmax: xmax, ymin: ymin, ymax: ymax, width: width, height: height, iterations: iterations });
+
+            }
             workerMandelbrot.onmessage = (evt) => {
                 let downloadAnchor = document.getElementById("downloadMandelbrot")
                 if (downloadAnchor !== null) {
                     document.body.removeChild(downloadAnchor);
                 }
                 let data = evt.data;
-                let imageData = ctx.createImageData(640, 480);
+                let imageData = ctx.createImageData(width, height);
                 imageData.data.set(new Uint8ClampedArray(data.buffer));
                 ctx.putImageData(imageData, 0, 0);
                 let elm = document.createElement("a");
